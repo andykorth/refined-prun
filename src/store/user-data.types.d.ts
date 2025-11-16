@@ -70,7 +70,7 @@ declare namespace UserData {
     name?: string;
     group?: string;
 
-    createBids?: boolean;
+    allowUnfilled?: boolean;
     buyPartial?: boolean;
     exchange?: string;
     useCXInv?: boolean;

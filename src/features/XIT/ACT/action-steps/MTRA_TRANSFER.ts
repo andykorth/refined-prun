@@ -3,7 +3,6 @@ import { serializeStorage } from '@src/features/XIT/ACT/actions/utils';
 import { fixed0 } from '@src/utils/format';
 import { changeInputValue, clickElement, focusElement } from '@src/util';
 import { materialsStore } from '@src/infrastructure/prun-api/data/materials';
-import { isDefined } from 'ts-extras';
 import { watchWhile } from '@src/utils/watch';
 import { storagesStore } from '@src/infrastructure/prun-api/data/storage';
 import { AssertFn } from '@src/features/XIT/ACT/shared-types';
@@ -15,8 +14,8 @@ interface Data {
   amount: number;
 }
 
-export const TRANSFER_MATERIALS = act.addActionStep<Data>({
-  type: 'TRANSFER_MATERIALS',
+export const MTRA_TRANSFER = act.addActionStep<Data>({
+  type: 'MTRA_TRANSFER',
   preProcessData: data => ({ ...data, ticker: data.ticker.toUpperCase() }),
   description: data => {
     const from = storagesStore.getById(data.from);
@@ -37,6 +36,12 @@ export const TRANSFER_MATERIALS = act.addActionStep<Data>({
 
     if (!from.items.find(x => x.quantity?.material.ticker === ticker)) {
       log.warning(`No ${ticker} was transferred (not present in origin)`);
+      skip();
+      return;
+    }
+
+    if (amount <= 0) {
+      log.warning(`No ${ticker} was transferred (target amount is 0)`);
       skip();
       return;
     }
@@ -69,8 +74,7 @@ export const TRANSFER_MATERIALS = act.addActionStep<Data>({
     focusElement(input);
     changeInputValue(input, ticker);
 
-    const suggestionsList = _$(container, C.MaterialSelector.suggestionsList);
-    assert(suggestionsList, 'Suggestions list not found');
+    const suggestionsList = await $(container, C.MaterialSelector.suggestionsList);
     suggestionsContainer.style.display = 'none';
     const match = _$$(suggestionsList, C.MaterialSelector.suggestionEntry).find(
       x => _$(x, C.ColoredIcon.label)?.textContent === ticker,
@@ -113,7 +117,7 @@ export const TRANSFER_MATERIALS = act.addActionStep<Data>({
       return (
         store?.items
           .map(x => x.quantity ?? undefined)
-          .filter(isDefined)
+          .filter(x => x !== undefined)
           .find(x => x.material.ticker === ticker)?.amount ?? 0
       );
     });

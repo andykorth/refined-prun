@@ -1,6 +1,6 @@
 import { act } from '@src/features/XIT/ACT/act-registry';
 import Edit from '@src/features/XIT/ACT/actions/cx-buy/Edit.vue';
-import { CX_BUY } from '@src/features/XIT/ACT/action-steps/CX_BUY';
+import { CXPO_BUY } from '@src/features/XIT/ACT/action-steps/CXPO_BUY.ts';
 import { fixed0, fixed02 } from '@src/utils/format';
 import { fillAmount } from '@src/features/XIT/ACT/actions/cx-buy/utils';
 import { AssertFn } from '@src/features/XIT/ACT/shared-types';
@@ -18,6 +18,8 @@ act.addAction({
   generateSteps: async ctx => {
     const { data, state, log, fail, getMaterialGroup, emitStep } = ctx;
     const assert: AssertFn = ctx.assert;
+    const allowUnfilled = data.allowUnfilled ?? false;
+    const buyPartial = data.buyPartial ?? false;
 
     const materials = await getMaterialGroup(data.group);
     assert(materials, 'Invalid material group');
@@ -57,43 +59,42 @@ act.addAction({
 
       const cxTicker = `${ticker}.${data.exchange}`;
       const filled = fillAmount(cxTicker, amount, priceLimit);
+      let bidAmount = amount;
 
-      if (!data.createBids) {
-        // if creating bids, don't check to see if the amount is present on the cx (in the `filled` var).
-
-        if (filled && filled.amount < amount) {
-          if (!data.buyPartial) {
-            let message = `Not enough materials on ${exchange} to buy ${fixed0(amount)} ${ticker}`;
-            if (isFinite(priceLimit)) {
-              message += ` with price limit ${fixed02(priceLimit)}/u`;
-            }
-            fail(message);
-            return;
-          }
-
-          const leftover = amount - filled.amount;
-          let message =
-            `${fixed0(leftover)} ${ticker} will not be bought on ${exchange} ` +
-            `(${fixed0(filled.amount)} of ${fixed0(amount)} available`;
+      if (filled && filled.amount < amount && !allowUnfilled) {
+        if (!buyPartial) {
+          let message = `Not enough materials on ${exchange} to buy ${fixed0(amount)} ${ticker}`;
           if (isFinite(priceLimit)) {
             message += ` with price limit ${fixed02(priceLimit)}/u`;
           }
-          message += ')';
-          log.warning(message);
-          if (filled.amount === 0) {
-            continue;
-          }
+          fail(message);
+          return;
         }
+
+        const leftover = amount - filled.amount;
+        let message =
+          `${fixed0(leftover)} ${ticker} will not be bought on ${exchange} ` +
+          `(${fixed0(filled.amount)} of ${fixed0(amount)} available`;
+        if (isFinite(priceLimit)) {
+          message += ` with price limit ${fixed02(priceLimit)}/u`;
+        }
+        message += ')';
+        log.warning(message);
+        if (filled.amount === 0) {
+          continue;
+        }
+
+        bidAmount = filled.amount;
       }
 
       emitStep(
-        CX_BUY({
+        CXPO_BUY({
           exchange,
           ticker,
-          amount: filled?.amount ?? amount,
+          amount: bidAmount,
           priceLimit: priceLimit,
-          buyPartial: data.buyPartial ?? false,
-          createBids: data.createBids ?? false,
+          buyPartial: buyPartial,
+          allowUnfilled: allowUnfilled,
         }),
       );
     }
