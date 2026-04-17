@@ -24,6 +24,18 @@ const migrations: MigrationEntry[] = [
     },
   ],
   [
+    '11.03.2026 Add linkedBuffersPresets',
+    userData => {
+      userData.linkedBuffersPresets = [];
+    },
+  ],
+  [
+    '09.03.2026 Add contextMenuExchange setting',
+    userData => {
+      userData.settings.contextMenuExchange = 'AI1' as UserData.Exchange;
+    },
+  ],
+  [
     '24.01.2026 Remove cxpc-default-1y',
     userData => {
       removeFeature(userData, 'cxpc-default-1y');

@@ -8,6 +8,7 @@ import { configurableValue } from '@src/features/XIT/ACT/shared-types';
 
 act.addMaterialGroup<Config>({
   type: 'Repair',
+  shortDescription: 'Calculate repair materials for aging buildings',
   description: data => {
     if (!data.planet) {
       return '--';
@@ -77,10 +78,10 @@ act.addMaterialGroup<Config>({
       const adjustedDate = date + advanceDays;
       for (const ticker of Object.keys(buildingMaterials)) {
         const amount =
+          // This isn't quite right but will be off by only 1 MCG at most
           adjustedDate > 180
             ? buildingMaterials[ticker]
-            : // This isn't quite right, but will be off by only 1 MCG at most
-              Math.ceil((buildingMaterials[ticker] * adjustedDate) / 180);
+            : Math.ceil((buildingMaterials[ticker] * adjustedDate) / 180);
 
         if (parsedGroup[ticker]) {
           parsedGroup[ticker] += amount;
